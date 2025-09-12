@@ -4,7 +4,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace RemoteControlApp
 {
@@ -103,7 +103,7 @@ namespace RemoteControlApp
             {
                 try
                 {
-                    var errorResponse = JsonConvert.SerializeObject(new { error = ex.Message });
+                    var errorResponse = CreateJsonResponse(false, ex.Message);
                     var buffer = Encoding.UTF8.GetBytes(errorResponse);
                     context.Response.StatusCode = 500;
                     context.Response.ContentType = "application/json";
@@ -122,29 +122,74 @@ namespace RemoteControlApp
         {
             try
             {
-                dynamic command = JsonConvert.DeserializeObject(jsonCommand);
-                string action = command.action;
+                // Simple JSON parsing for specific structure
+                var action = ExtractJsonValue(jsonCommand, "action");
 
-                switch (action?.ToLower())
+                if (string.IsNullOrEmpty(action))
+                {
+                    return CreateJsonResponse(false, "Action is required");
+                }
+
+                switch (action.ToLower())
                 {
                     case "launch_browser":
-                        string url = command.url;
+                        var url = ExtractJsonValue(jsonCommand, "url");
                         if (string.IsNullOrEmpty(url))
                         {
-                            return JsonConvert.SerializeObject(new { success = false, error = "URL is required" });
+                            return CreateJsonResponse(false, "URL is required");
                         }
-                        
+
                         BrowserLauncher.LaunchUrl(url);
-                        return JsonConvert.SerializeObject(new { success = true, message = "Browser launched successfully" });
+                        return CreateJsonResponse(true, "Browser launched successfully");
 
                     default:
-                        return JsonConvert.SerializeObject(new { success = false, error = "Unknown action" });
+                        return CreateJsonResponse(false, "Unknown action");
                 }
             }
             catch (Exception ex)
             {
-                return JsonConvert.SerializeObject(new { success = false, error = ex.Message });
+                return CreateJsonResponse(false, ex.Message);
             }
+        }
+
+        private string ExtractJsonValue(string json, string key)
+        {
+            try
+            {
+                // Simple regex-based JSON value extraction for basic cases
+                var pattern = "\"" + key + "\"\\s*:\\s*\"([^\"]*)\"";
+                var match = Regex.Match(json, pattern, RegexOptions.IgnoreCase);
+                return match.Success ? match.Groups[1].Value : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private string CreateJsonResponse(bool success, string message)
+        {
+            if (success)
+            {
+                return "{\"success\": true, \"message\": \"" + EscapeJsonString(message) + "\"}";
+            }
+            else
+            {
+                return "{\"success\": false, \"error\": \"" + EscapeJsonString(message) + "\"}";
+            }
+        }
+
+        private string EscapeJsonString(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            return input
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n")
+                .Replace("\t", "\\t");
         }
 
         public void Dispose()
