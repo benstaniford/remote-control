@@ -1,0 +1,45 @@
+name: Build C# and WiX Projects
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET Framework
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: nuget/setup-nuget@v1
+      with:
+        nuget-version: 'latest'
+
+    - name: Restore NuGet packages
+      run: nuget restore RemoteControl.sln
+
+    - name: Build C# Project
+      run: msbuild RemoteControlApp/RemoteControlApp.csproj /p:Configuration=Release /p:Platform="Any CPU"
+
+    - name: Setup WiX Toolset
+      run: |
+        choco install wixtoolset -y
+        refreshenv
+
+    - name: Build WiX Installer
+      run: msbuild RemoteControlInstaller/RemoteControlInstaller.wixproj /p:Configuration=Release /p:Platform=x86
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          RemoteControlApp/bin/Release/
+          RemoteControlInstaller/bin/Release/
