@@ -33,6 +33,12 @@
     <Compile Include="Product.wxs" />
   </ItemGroup>
   <ItemGroup>
+    <WixExtension Include="WixUIExtension">
+      <HintPath>$(WixExtDir)\WixUIExtension.dll</HintPath>
+      <Name>WixUIExtension</Name>
+    </WixExtension>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\RemoteControlApp\RemoteControlApp.csproj">
       <Name>RemoteControlApp</Name>
       <Project>{B8F2F8C5-3E4A-4B9D-8F1C-2D3E4F5A6B7C}</Project>
