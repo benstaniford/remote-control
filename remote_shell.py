@@ -28,7 +28,7 @@ from remote_control_client import RemoteControlClient
 class RemoteShell:
     """Interactive remote shell interface."""
     
-    def __init__(self, host: str = "localhost", port: int = 417):
+    def __init__(self, host: str = "localhost", port: int = 8417):
         """
         Initialize the remote shell.
         
@@ -160,7 +160,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s                          # Connect to localhost:417
+  %(prog)s                          # Connect to localhost:8417
   %(prog)s --port 8417              # Connect via SSH tunnel
   %(prog)s --host 192.168.1.100     # Connect to specific host
         """
@@ -175,8 +175,8 @@ Examples:
     parser.add_argument(
         "--port",
         type=int,
-        default=417,
-        help="Port to connect to (default: 417)"
+        default=8417,
+        help="Port to connect to (default: 8417)"
     )
     
     args = parser.parse_args()

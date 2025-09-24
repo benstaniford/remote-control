@@ -15,13 +15,13 @@ import socket
 class RemoteControlClient:
     """Client for communicating with Remote Control tray application."""
     
-    def __init__(self, host: str = "localhost", port: int = 417):
+    def __init__(self, host: str = "localhost", port: int = 8417):
         """
         Initialize the Remote Control client.
         
         Args:
             host: The hostname to connect to (default: localhost)
-            port: The port to connect to (default: 417)
+            port: The port to connect to (default: 8417)
         """
         self.host = host
         self.port = port

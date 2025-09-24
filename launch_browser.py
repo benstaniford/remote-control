@@ -57,7 +57,7 @@ Examples:
         "--port", "-p",
         type=int,
         default=8417,
-        help="Port to connect to (default: 8417, use 417 for direct connection)"
+        help="Port to connect to (default: 8417)"
     )
     
     parser.add_argument(

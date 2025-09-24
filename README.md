@@ -1,11 +1,11 @@
 # Remote Control App
 
-A Windows tray application that listens on localhost:417 and provides a JSON-based protocol for launching the default browser to specified URLs.
+A Windows tray application that listens on localhost:8417 and provides a JSON-based protocol for launching the default browser to specified URLs.
 
 ## Features
 
 - Runs as a system tray application
-- HTTP server listening on localhost:417
+- HTTP server listening on localhost:8417
 - JSON-based protocol for browser control
 - Automatic startup with Windows (via installer)
 - WiX 3 based installer
@@ -29,7 +29,7 @@ A Windows tray application that listens on localhost:417 and provides a JSON-bas
 
 ### JSON Protocol
 
-Send POST requests to `http://localhost:417/` with JSON payloads:
+Send POST requests to `http://localhost:8417/` with JSON payloads:
 
 #### Launch Browser
 ```json
@@ -49,7 +49,7 @@ Send POST requests to `http://localhost:417/` with JSON payloads:
 
 ### Example using curl
 ```bash
-curl -X POST http://localhost:417/ -H "Content-Type: application/json" -d '{"action":"launch_browser","url":"https://google.com"}'
+curl -X POST http://localhost:8417/ -H "Content-Type: application/json" -d '{"action":"launch_browser","url":"https://google.com"}'
 ```
 
 ### Example using PowerShell
@@ -59,7 +59,7 @@ $body = @{
     url = "https://google.com"
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "http://localhost:417/" -Method Post -Body $body -ContentType "application/json"
+Invoke-RestMethod -Uri "http://localhost:8417/" -Method Post -Body $body -ContentType "application/json"
 ```
 
 ## Installation
