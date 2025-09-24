@@ -51,14 +51,14 @@ JSON API accepts POST requests with format:
 
 ### SSH Tunnel Setup
 
-The typical use case involves SSH tunneling from Linux to Windows:
+The typical use case involves SSH tunneling from Linux back to the Windows machine you connected from:
 
 ```bash
-# Create SSH tunnel (Linux -> Windows)
-ssh -L 8417:localhost:417 user@windows-machine
+# Create SSH tunnel (Windows -> Linux)
+ssh -R 8417:localhost:8417 user@linux-machine
 
 # Launch browser from Linux
-python launch_browser.py https://google.com --port 8417
+python launch_browser.py https://google.com
 ```
 
 ### Python Module Usage
