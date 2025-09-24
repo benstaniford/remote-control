@@ -11,11 +11,13 @@ namespace RemoteControlApp
         private NotifyIcon _trayIcon;
         private HttpServer _httpServer;
         private ShellManager _shellManager;
+        private FileManager _fileManager;
 
         public TrayApplicationContext()
         {
             InitializeTray();
             _shellManager = new ShellManager();
+            _fileManager = new FileManager();
             StartServer();
         }
 
@@ -56,7 +58,7 @@ namespace RemoteControlApp
         {
             try
             {
-                _httpServer = new HttpServer(_shellManager);
+                _httpServer = new HttpServer(_shellManager, _fileManager);
                 _httpServer.Start();
             }
             catch (Exception ex)

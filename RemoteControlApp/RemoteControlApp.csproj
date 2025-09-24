@@ -101,6 +101,7 @@
     <Compile Include="HttpServer.cs" />
     <Compile Include="BrowserLauncher.cs" />
     <Compile Include="ShellManager.cs" />
+    <Compile Include="FileManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

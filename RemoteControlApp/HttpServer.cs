@@ -13,14 +13,16 @@ namespace RemoteControlApp
         private readonly HttpListener _listener;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly ShellManager _shellManager;
+        private readonly FileManager _fileManager;
         private Task _listenerTask;
 
-        public HttpServer(ShellManager shellManager)
+        public HttpServer(ShellManager shellManager, FileManager fileManager)
         {
             _listener = new HttpListener();
             _listener.Prefixes.Add("http://localhost:8417/");
             _cancellationTokenSource = new CancellationTokenSource();
             _shellManager = shellManager;
+            _fileManager = fileManager;
         }
 
         public void Start()
@@ -206,6 +208,116 @@ namespace RemoteControlApp
                             return CreateJsonResponse(false, "Failed to get shell status: " + ex.Message);
                         }
 
+                    case "file_upload":
+                        var uploadPath = ExtractJsonValue(jsonCommand, "path");
+                        var uploadContent = ExtractJsonValue(jsonCommand, "content");
+                        if (string.IsNullOrEmpty(uploadPath))
+                        {
+                            return CreateJsonResponse(false, "File path is required");
+                        }
+                        if (string.IsNullOrEmpty(uploadContent))
+                        {
+                            return CreateJsonResponse(false, "File content is required");
+                        }
+
+                        try
+                        {
+                            _fileManager.WriteFileFromBase64(uploadPath, uploadContent);
+                            return CreateJsonResponse(true, "File uploaded successfully");
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to upload file: " + ex.Message);
+                        }
+
+                    case "file_download":
+                        var downloadPath = ExtractJsonValue(jsonCommand, "path");
+                        if (string.IsNullOrEmpty(downloadPath))
+                        {
+                            return CreateJsonResponse(false, "File path is required");
+                        }
+
+                        try
+                        {
+                            var fileContent = _fileManager.ReadFileAsBase64(downloadPath);
+                            var fileInfo = _fileManager.GetFileInfo(downloadPath);
+                            return CreateFileDownloadResponse(fileContent, fileInfo);
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to download file: " + ex.Message);
+                        }
+
+                    case "file_exists":
+                        var checkPath = ExtractJsonValue(jsonCommand, "path");
+                        if (string.IsNullOrEmpty(checkPath))
+                        {
+                            return CreateJsonResponse(false, "File path is required");
+                        }
+
+                        try
+                        {
+                            var exists = _fileManager.FileExists(checkPath);
+                            return CreateFileExistsResponse(exists);
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to check file: " + ex.Message);
+                        }
+
+                    case "file_info":
+                        var infoPath = ExtractJsonValue(jsonCommand, "path");
+                        if (string.IsNullOrEmpty(infoPath))
+                        {
+                            return CreateJsonResponse(false, "File path is required");
+                        }
+
+                        try
+                        {
+                            var fileInfo = _fileManager.GetFileInfo(infoPath);
+                            var fileHash = _fileManager.GetFileHash(infoPath);
+                            return CreateFileInfoResponse(fileInfo, fileHash);
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to get file info: " + ex.Message);
+                        }
+
+                    case "file_delete":
+                        var deletePath = ExtractJsonValue(jsonCommand, "path");
+                        if (string.IsNullOrEmpty(deletePath))
+                        {
+                            return CreateJsonResponse(false, "File path is required");
+                        }
+
+                        try
+                        {
+                            _fileManager.DeleteFile(deletePath);
+                            return CreateJsonResponse(true, "File deleted successfully");
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to delete file: " + ex.Message);
+                        }
+
+                    case "file_list":
+                        var listPath = ExtractJsonValue(jsonCommand, "path");
+                        var pattern = ExtractJsonValue(jsonCommand, "pattern");
+                        if (string.IsNullOrEmpty(listPath))
+                        {
+                            return CreateJsonResponse(false, "Directory path is required");
+                        }
+
+                        try
+                        {
+                            var files = _fileManager.ListFiles(listPath, pattern ?? "*");
+                            return CreateFileListResponse(files);
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to list files: " + ex.Message);
+                        }
+
                     default:
                         return CreateJsonResponse(false, "Unknown action");
                 }
@@ -254,6 +366,48 @@ namespace RemoteControlApp
         private string CreateShellStatusResponse(bool isRunning)
         {
             return "{\"success\": true, \"running\": " + (isRunning ? "true" : "false") + "}";
+        }
+
+        private string CreateFileDownloadResponse(string content, FileInfo fileInfo)
+        {
+            var contentJson = "\"" + EscapeJsonString(content) + "\"";
+            var nameJson = "\"" + EscapeJsonString(fileInfo.Name) + "\"";
+            var sizeJson = fileInfo.Length.ToString();
+            var modifiedJson = "\"" + fileInfo.LastWriteTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") + "\"";
+            
+            return "{\"success\": true, \"content\": " + contentJson + ", \"name\": " + nameJson + ", \"size\": " + sizeJson + ", \"modified\": " + modifiedJson + "}";
+        }
+
+        private string CreateFileExistsResponse(bool exists)
+        {
+            return "{\"success\": true, \"exists\": " + (exists ? "true" : "false") + "}";
+        }
+
+        private string CreateFileInfoResponse(FileInfo fileInfo, string hash)
+        {
+            var nameJson = "\"" + EscapeJsonString(fileInfo.Name) + "\"";
+            var fullNameJson = "\"" + EscapeJsonString(fileInfo.FullName) + "\"";
+            var sizeJson = fileInfo.Length.ToString();
+            var createdJson = "\"" + fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") + "\"";
+            var modifiedJson = "\"" + fileInfo.LastWriteTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") + "\"";
+            var hashJson = "\"" + EscapeJsonString(hash) + "\"";
+            
+            return "{\"success\": true, \"name\": " + nameJson + ", \"fullName\": " + fullNameJson + ", \"size\": " + sizeJson + ", \"created\": " + createdJson + ", \"modified\": " + modifiedJson + ", \"hash\": " + hashJson + "}";
+        }
+
+        private string CreateFileListResponse(string[] files)
+        {
+            var fileList = new StringBuilder();
+            fileList.Append("[");
+            
+            for (int i = 0; i < files.Length; i++)
+            {
+                if (i > 0) fileList.Append(", ");
+                fileList.Append("\"" + EscapeJsonString(files[i]) + "\"");
+            }
+            
+            fileList.Append("]");
+            return "{\"success\": true, \"files\": " + fileList.ToString() + "}";
         }
 
         private string EscapeJsonString(string input)
