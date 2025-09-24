@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(chmod:*)",
-      "Read(//home/ben/dot-files/**)"
+      "Read(//home/ben/dot-files/**)",
+      "Read(//home/ben/jira-command-line/**)"
     ],
     "deny": [],
     "ask": []

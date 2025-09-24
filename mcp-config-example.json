@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "windows-remote": {
+      "command": "python",
+      "args": ["/home/ben/Code/remote-control/WinRemoteMcpServer.py"],
+      "env": {}
+    }
+  }
+}

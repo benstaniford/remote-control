@@ -71,6 +71,8 @@ JSON API accepts POST requests with format:
 - **file_copy.py**: File copy script with local/remote syntax
 - **test_shell_client.py**: Test script for shell functionality  
 - **test_file_copy.py**: Test script for file copy functionality
+- **WinRemoteMcpServer.py**: MCP server providing Claude Desktop integration
+- **mcp-config-example.json**: Example MCP server configuration
 
 ## Python Client Integration
 
@@ -140,6 +142,73 @@ python file_copy.py --delete remote:C:/temp/document.txt          # Delete file
 
 # Test file copy functionality
 python test_file_copy.py
+```
+
+## MCP Server Integration
+
+### Claude Desktop Integration
+
+The WinRemoteMcpServer.py provides an MCP (Model Context Protocol) server that exposes all Remote Control functionality to Claude Desktop and other MCP clients.
+
+#### Setup Instructions
+
+1. **Install MCP dependencies** (if not already installed):
+```bash
+pip install mcp
+```
+
+2. **Configure Claude Desktop** - Add to your MCP settings file:
+```json
+{
+  "mcpServers": {
+    "windows-remote": {
+      "command": "python",
+      "args": ["/path/to/remote-control/WinRemoteMcpServer.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+3. **Start the MCP server** (for testing):
+```bash
+python WinRemoteMcpServer.py
+```
+
+#### Available MCP Tools
+
+**Browser Control:**
+- `launch_browser`: Open URLs in Windows default browser
+
+**Shell Operations:**
+- `shell_start`: Start Windows Command Prompt session
+- `shell_stop`: Stop shell session
+- `shell_status`: Check if shell is running
+- `shell_command`: Execute commands and get output
+- `shell_get_output`: Retrieve pending output
+
+**File Operations:**
+- `upload_file`: Transfer files from local to Windows
+- `download_file`: Transfer files from Windows to local
+- `file_exists`: Check file existence on Windows
+- `get_file_info`: Get file metadata (size, dates, hash)
+- `delete_file`: Delete files on Windows
+- `list_files`: List directory contents on Windows
+
+**Connection Management:**
+- `test_connection`: Verify connection to Windows app
+- `get_status`: Get connection and shell status
+- `configure_connection`: Set host/port for connection
+
+#### Usage with Claude Desktop
+
+Once configured, Claude Desktop will automatically have access to all Windows Remote Control functionality:
+
+```
+"Can you list the files in C:/temp/ on my Windows machine?"
+"Please upload this document.txt file to C:/Users/username/Documents/"
+"Run 'dir' command on Windows and show me the output"
+"Launch https://github.com in my Windows browser"
 ```
 
 ## Development Notes
