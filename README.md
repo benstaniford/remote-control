@@ -1,6 +1,6 @@
 # Remote Control MCP Server
 
-A comprehensive remote control solution that provides Claude Desktop with full access to a Windows machine through SSH tunneling. This system consists of a lightweight Windows tray application and an MCP (Model Context Protocol) server that enables natural language control of browser, shell, and file operations.
+A comprehensive remote control solution that provides Claude Desktop on Linux with full access to a Windows machine through SSH tunneling. This system consists of a lightweight Windows tray application and an MCP (Model Context Protocol) server that enables natural language control of browser, shell, and file operations.
 
 ## Overview
 
