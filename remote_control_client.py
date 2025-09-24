@@ -130,3 +130,151 @@ class RemoteControlClient:
             "connected": is_connected,
             "url": self.base_url
         }
+    
+    def start_shell(self) -> bool:
+        """
+        Start a shell process on the remote Windows machine.
+        
+        Returns:
+            True if successful, False otherwise
+            
+        Raises:
+            ConnectionError: If unable to connect to server
+            RuntimeError: If server returns an error
+        """
+        data = {"action": "shell_start"}
+        
+        try:
+            response = self._make_request(data)
+            
+            if response.get("success"):
+                return True
+            else:
+                error_msg = response.get("error", "Unknown error")
+                raise RuntimeError(f"Server error: {error_msg}")
+                
+        except (ConnectionError, ValueError) as e:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Request failed: {e}") from e
+    
+    def send_shell_input(self, command: str) -> bool:
+        """
+        Send input to the running shell.
+        
+        Args:
+            command: The command to send to the shell
+            
+        Returns:
+            True if successful, False otherwise
+            
+        Raises:
+            ConnectionError: If unable to connect to server
+            ValueError: If command is empty
+            RuntimeError: If server returns an error
+        """
+        if not command or not command.strip():
+            raise ValueError("Command cannot be empty")
+            
+        data = {
+            "action": "shell_input",
+            "input": command.strip()
+        }
+        
+        try:
+            response = self._make_request(data)
+            
+            if response.get("success"):
+                return True
+            else:
+                error_msg = response.get("error", "Unknown error")
+                raise RuntimeError(f"Server error: {error_msg}")
+                
+        except (ConnectionError, ValueError) as e:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Request failed: {e}") from e
+    
+    def get_shell_output(self) -> Dict[str, str]:
+        """
+        Get output from the running shell.
+        
+        Returns:
+            Dictionary with 'output' and 'error' keys containing shell output
+            
+        Raises:
+            ConnectionError: If unable to connect to server
+            RuntimeError: If server returns an error
+        """
+        data = {"action": "shell_output"}
+        
+        try:
+            response = self._make_request(data)
+            
+            if response.get("success"):
+                return {
+                    "output": response.get("output", ""),
+                    "error": response.get("error", "")
+                }
+            else:
+                error_msg = response.get("error", "Unknown error")
+                raise RuntimeError(f"Server error: {error_msg}")
+                
+        except (ConnectionError, ValueError) as e:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Request failed: {e}") from e
+    
+    def stop_shell(self) -> bool:
+        """
+        Stop the running shell process.
+        
+        Returns:
+            True if successful, False otherwise
+            
+        Raises:
+            ConnectionError: If unable to connect to server
+            RuntimeError: If server returns an error
+        """
+        data = {"action": "shell_stop"}
+        
+        try:
+            response = self._make_request(data)
+            
+            if response.get("success"):
+                return True
+            else:
+                error_msg = response.get("error", "Unknown error")
+                raise RuntimeError(f"Server error: {error_msg}")
+                
+        except (ConnectionError, ValueError) as e:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Request failed: {e}") from e
+    
+    def get_shell_status(self) -> bool:
+        """
+        Check if shell is currently running.
+        
+        Returns:
+            True if shell is running, False otherwise
+            
+        Raises:
+            ConnectionError: If unable to connect to server
+            RuntimeError: If server returns an error
+        """
+        data = {"action": "shell_status"}
+        
+        try:
+            response = self._make_request(data)
+            
+            if response.get("success"):
+                return response.get("running", False)
+            else:
+                error_msg = response.get("error", "Unknown error")
+                raise RuntimeError(f"Server error: {error_msg}")
+                
+        except (ConnectionError, ValueError) as e:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Request failed: {e}") from e

@@ -12,13 +12,15 @@ namespace RemoteControlApp
     {
         private readonly HttpListener _listener;
         private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly ShellManager _shellManager;
         private Task _listenerTask;
 
-        public HttpServer()
+        public HttpServer(ShellManager shellManager)
         {
             _listener = new HttpListener();
             _listener.Prefixes.Add("http://localhost:8417/");
             _cancellationTokenSource = new CancellationTokenSource();
+            _shellManager = shellManager;
         }
 
         public void Start()
@@ -142,6 +144,68 @@ namespace RemoteControlApp
                         BrowserLauncher.LaunchUrl(url);
                         return CreateJsonResponse(true, "Browser launched successfully");
 
+                    case "shell_start":
+                        try
+                        {
+                            _shellManager.StartShell();
+                            return CreateJsonResponse(true, "Shell started successfully");
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to start shell: " + ex.Message);
+                        }
+
+                    case "shell_input":
+                        var input = ExtractJsonValue(jsonCommand, "input");
+                        if (input == null)
+                        {
+                            return CreateJsonResponse(false, "Input is required");
+                        }
+
+                        try
+                        {
+                            _shellManager.SendInput(input);
+                            return CreateJsonResponse(true, "Input sent successfully");
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to send input: " + ex.Message);
+                        }
+
+                    case "shell_output":
+                        try
+                        {
+                            var output = _shellManager.GetOutput();
+                            var error = _shellManager.GetError();
+                            return CreateShellOutputResponse(output, error);
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to get output: " + ex.Message);
+                        }
+
+                    case "shell_stop":
+                        try
+                        {
+                            _shellManager.StopShell();
+                            return CreateJsonResponse(true, "Shell stopped successfully");
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to stop shell: " + ex.Message);
+                        }
+
+                    case "shell_status":
+                        try
+                        {
+                            var isRunning = _shellManager.IsRunning;
+                            return CreateShellStatusResponse(isRunning);
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to get shell status: " + ex.Message);
+                        }
+
                     default:
                         return CreateJsonResponse(false, "Unknown action");
                 }
@@ -177,6 +241,19 @@ namespace RemoteControlApp
             {
                 return "{\"success\": false, \"error\": \"" + EscapeJsonString(message) + "\"}";
             }
+        }
+
+        private string CreateShellOutputResponse(string output, string error)
+        {
+            var outputJson = string.IsNullOrEmpty(output) ? "\"\"" : "\"" + EscapeJsonString(output) + "\"";
+            var errorJson = string.IsNullOrEmpty(error) ? "\"\"" : "\"" + EscapeJsonString(error) + "\"";
+            
+            return "{\"success\": true, \"output\": " + outputJson + ", \"error\": " + errorJson + "}";
+        }
+
+        private string CreateShellStatusResponse(bool isRunning)
+        {
+            return "{\"success\": true, \"running\": " + (isRunning ? "true" : "false") + "}";
         }
 
         private string EscapeJsonString(string input)

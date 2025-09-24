@@ -10,10 +10,12 @@ namespace RemoteControlApp
     {
         private NotifyIcon _trayIcon;
         private HttpServer _httpServer;
+        private ShellManager _shellManager;
 
         public TrayApplicationContext()
         {
             InitializeTray();
+            _shellManager = new ShellManager();
             StartServer();
         }
 
@@ -54,7 +56,7 @@ namespace RemoteControlApp
         {
             try
             {
-                _httpServer = new HttpServer();
+                _httpServer = new HttpServer(_shellManager);
                 _httpServer.Start();
             }
             catch (Exception ex)
@@ -66,7 +68,8 @@ namespace RemoteControlApp
 
         private void ShowStatus(object sender, EventArgs e)
         {
-            MessageBox.Show("Remote Control App is running and listening on localhost:8417\n\nJSON Protocol:\n{\n  \"action\": \"launch_browser\",\n  \"url\": \"https://example.com\"\n}", 
+            var shellStatus = _shellManager.IsRunning ? "Running" : "Stopped";
+            MessageBox.Show($"Remote Control App is running and listening on localhost:8417\n\nShell Status: {shellStatus}\n\nJSON Protocol:\n{{\n  \"action\": \"launch_browser\",\n  \"url\": \"https://example.com\"\n}}\n\nShell Actions:\n- shell_start, shell_stop, shell_status\n- shell_input, shell_output", 
                            "Status", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -81,6 +84,7 @@ namespace RemoteControlApp
             if (disposing)
             {
                 _httpServer?.Dispose();
+                _shellManager?.Dispose();
                 _trayIcon?.Dispose();
             }
             base.Dispose(disposing);
