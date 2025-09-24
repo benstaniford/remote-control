@@ -12,14 +12,14 @@ Usage:
 
 Examples:
     # Launch browser with SSH tunnel (typical usage)
-    ssh -L 8417:localhost:417 user@windows-machine
-    python launch_browser.py https://google.com --port 8417
+    ssh -L 8417:localhost:8417 user@windows-machine
+    python launch_browser.py https://google.com
     
     # Test connection
-    python launch_browser.py --test --port 8417
+    python launch_browser.py --test
     
     # Check status
-    python launch_browser.py --status --port 8417
+    python launch_browser.py --status
 """
 
 import argparse
@@ -34,9 +34,9 @@ def main():
         description="Launch URLs in Windows browser via Remote Control app",
         epilog="""
 Examples:
-  %(prog)s https://google.com --port 8417
-  %(prog)s --test --port 8417
-  %(prog)s --status --port 8417
+  %(prog)s https://google.com
+  %(prog)s --test  
+  %(prog)s --status
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -56,8 +56,8 @@ Examples:
     parser.add_argument(
         "--port", "-p",
         type=int,
-        default=417,
-        help="Port to connect to (default: 417, use 8417 for SSH tunnel)"
+        default=8417,
+        help="Port to connect to (default: 8417, use 417 for direct connection)"
     )
     
     parser.add_argument(
@@ -117,9 +117,11 @@ def test_connection(client: RemoteControlClient) -> int:
     else:
         print("✗ Connection failed")
         print(f"Make sure the Remote Control app is running on {client.host}:{client.port}")
-        if client.port != 417:
+        if client.port != 8417:
+            print("If using direct connection, verify the app is running on the correct port")
+        else:
             print("If using SSH tunnel, verify the tunnel is active:")
-            print(f"  ssh -L {client.port}:localhost:417 user@windows-machine")
+            print(f"  ssh -L {client.port}:localhost:8417 user@windows-machine")
         return 1
 
 
@@ -137,8 +139,8 @@ def show_status(client: RemoteControlClient) -> int:
         print("\nTroubleshooting:")
         print("1. Ensure Remote Control app is running on Windows")
         print("2. If using SSH tunnel, verify tunnel is active:")
-        if status['port'] != 417:
-            print(f"   ssh -L {status['port']}:localhost:417 user@windows-machine")
+        if status['port'] == 8417:
+            print(f"   ssh -L {status['port']}:localhost:8417 user@windows-machine")
         print("3. Check Windows firewall settings")
         return 1
     
@@ -161,9 +163,11 @@ def launch_browser(client: RemoteControlClient, url: str, timeout: int) -> int:
             
     except ConnectionError as e:
         print(f"✗ Connection failed: {e}")
-        if client.port != 417:
+        if client.port != 8417:
+            print("If using direct connection, verify the app is running on the correct port")
+        else:
             print("If using SSH tunnel, verify the tunnel is active:")
-            print(f"  ssh -L {client.port}:localhost:417 user@windows-machine")
+            print(f"  ssh -L {client.port}:localhost:8417 user@windows-machine")
         return 1
     except ValueError as e:
         print(f"✗ Invalid URL: {e}")
