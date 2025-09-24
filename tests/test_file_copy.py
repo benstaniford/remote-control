@@ -8,6 +8,7 @@ import sys
 import os
 import tempfile
 import time
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from remote_control_client import RemoteControlClient
 
 
@@ -160,6 +161,9 @@ def test_file_copy_script():
     
     # Import the FileCopyTool
     try:
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from file_copy import FileCopyTool
         
         # Create tool

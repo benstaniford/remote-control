@@ -7,7 +7,11 @@ This script tests the MCP server functionality by simulating tool calls.
 import json
 import sys
 import asyncio
+import os
 from typing import Any, Dict
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import the MCP server
 try:

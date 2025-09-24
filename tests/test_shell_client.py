@@ -6,6 +6,8 @@ This script tests the shell API without requiring the Windows app to be running.
 
 import sys
 import time
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from remote_control_client import RemoteControlClient
 
 

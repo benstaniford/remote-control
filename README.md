@@ -148,9 +148,10 @@ python file_copy.py --info remote:C:/temp/document.txt          # Info
 python file_copy.py --delete remote:C:/temp/document.txt        # Delete
 
 # Testing
-python test_shell_client.py
-python test_file_copy.py
-python test_mcp_server.py
+python tests/run_tests.py               # Run all tests with summary
+python tests/test_shell_client.py       # Test shell functionality only
+python tests/test_file_copy.py          # Test file operations only  
+python tests/test_mcp_server.py         # Test MCP server only
 ```
 
 ## Building
@@ -207,7 +208,7 @@ The Windows application exposes a JSON HTTP API on localhost:8417:
 curl -X POST http://localhost:8417/ -d '{"action":"launch_browser","url":"https://google.com"}'
 
 # Test MCP server
-python test_mcp_server.py
+python tests/test_mcp_server.py
 
 # Verify SSH tunnel
 ssh -R 8417:localhost:8417 -N user@remote-machine

@@ -7,7 +7,9 @@
       "Read(//home/ben/jira-command-line/**)",
       "mcp__windows-remote__launch_browser",
       "mcp__windows-remote__shell_command",
-      "mcp__windows-remote__shell_get_output"
+      "mcp__windows-remote__shell_get_output",
+      "Bash(python tests/test_shell_client.py)",
+      "Bash(python tests:*)"
     ],
     "deny": [],
     "ask": []

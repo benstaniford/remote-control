@@ -69,10 +69,12 @@ JSON API accepts POST requests with format:
 - **launch_browser.py**: Command-line script for launching browsers remotely
 - **remote_shell.py**: Interactive remote shell script
 - **file_copy.py**: File copy script with local/remote syntax
-- **test_shell_client.py**: Test script for shell functionality  
-- **test_file_copy.py**: Test script for file copy functionality
 - **WinRemoteMcpServer.py**: MCP server providing Claude Desktop integration
 - **mcp-config-example.json**: Example MCP server configuration
+- **tests/**: Test scripts for validating functionality
+  - **test_shell_client.py**: Test script for shell functionality  
+  - **test_file_copy.py**: Test script for file copy functionality
+  - **test_mcp_server.py**: Test script for MCP server functionality
 
 ## Python Client Integration
 
@@ -130,9 +132,6 @@ python launch_browser.py --status --port 8417
 # Interactive remote shell
 python remote_shell.py --port 8417
 
-# Test shell functionality
-python test_shell_client.py
-
 # File copy operations
 python file_copy.py document.txt remote:C:/temp/document.txt    # Upload
 python file_copy.py remote:C:/temp/document.txt ./downloaded.txt  # Download
@@ -140,8 +139,11 @@ python file_copy.py --list remote:C:/temp/ --pattern "*.txt"      # List files
 python file_copy.py --info remote:C:/temp/document.txt            # File info
 python file_copy.py --delete remote:C:/temp/document.txt          # Delete file
 
-# Test file copy functionality
-python test_file_copy.py
+# Testing
+python tests/run_tests.py                # Run all tests with summary
+python tests/test_shell_client.py        # Test shell functionality
+python tests/test_file_copy.py           # Test file copy functionality
+python tests/test_mcp_server.py          # Test MCP server functionality
 ```
 
 ## MCP Server Integration
