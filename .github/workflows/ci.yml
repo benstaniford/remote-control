@@ -7,6 +7,12 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -149,68 +155,91 @@ jobs:
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         $version = "${{ steps.version.outputs.VERSION }}"
+        $tag = "${{ github.ref_name }}"
+        
+        Write-Host "Creating release for tag: $tag"
+        Write-Host "Version: $version"
+        
+        # Create release notes file to avoid PowerShell string issues
         $releaseNotes = @"
-        ## Remote Control MCP Server v$version
+## Remote Control MCP Server v$version
+
+A comprehensive remote control solution that provides Claude Desktop with full access to a Windows machine through SSH tunneling.
+
+### Features
+- 🖥️ Windows tray application with HTTP API
+- 🤖 MCP server for Claude Desktop integration  
+- 💻 Remote shell operations
+- 📁 File transfer capabilities
+- 🌐 Browser control
+
+### Installation
+1. Download and run RemoteControlAppInstaller-v$version.msi
+2. Set up SSH tunnel: ssh -R 8417:localhost:8417 user@linux-machine
+3. Configure Claude Desktop with the MCP server
+4. Start controlling your Windows machine with natural language!
+
+### Quick Start
+```bash
+# Install MCP dependencies
+pip install mcp
+
+# Configure Claude Desktop MCP settings
+{
+  "mcpServers": {
+    "windows-remote": {
+      "command": "python",
+      "args": ["/path/to/WinRemoteMcpServer.py"]
+    }
+  }
+}
+
+# Start using with Claude Desktop
+"Launch https://github.com in my Windows browser"
+"Run 'dir' command on Windows and show output"  
+"Upload document.txt to C:/temp/"
+"List files in C:/Users/username/Documents/"
+```
+
+### Setup Documentation
+See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for complete setup instructions.
+
+### What's New in v$version
+- Enhanced MCP server integration
+- Improved file transfer capabilities
+- Better error handling and logging
+- Updated documentation and examples
+
+### Technical Details
+- **Windows App**: RemoteControlApp.exe (runs in system tray)
+- **MCP Server**: WinRemoteMcpServer.py (connects Claude to Windows)
+- **Protocol**: HTTP JSON API over SSH tunnel (port 8417)
+- **Security**: Local-only binding with SSH encryption
+"@
         
-        A comprehensive remote control solution that provides Claude Desktop with full access to a Windows machine through SSH tunneling.
+        # Write release notes to file
+        $releaseNotes | Out-File -FilePath "release-notes.md" -Encoding utf8
         
-        ### Features
-        - 🖥️ Windows tray application with HTTP API
-        - 🤖 MCP server for Claude Desktop integration  
-        - 💻 Remote shell operations
-        - 📁 File transfer capabilities
-        - 🌐 Browser control
-        
-        ### Installation
-        1. Download and run ``RemoteControlAppInstaller-v$version.msi``
-        2. Set up SSH tunnel: ``ssh -R 8417:localhost:8417 user@linux-machine``
-        3. Configure Claude Desktop with the MCP server
-        4. Start controlling your Windows machine with natural language!
-        
-        ### Quick Start
-        ``````bash
-        # Install MCP dependencies
-        pip install mcp
-        
-        # Configure Claude Desktop MCP settings
-        {
-          "mcpServers": {
-            "windows-remote": {
-              "command": "python",
-              "args": ["/path/to/WinRemoteMcpServer.py"]
-            }
+        # Check if release already exists
+        try {
+          $existingRelease = gh release view $tag 2>$null
+          if ($existingRelease) {
+            Write-Host "Release $tag already exists, deleting it first..."
+            gh release delete $tag --yes --cleanup-tag
+            Start-Sleep -Seconds 2
           }
+        } catch {
+          Write-Host "No existing release found (this is normal)"
         }
         
-        # Start using with Claude Desktop
-        "Launch https://github.com in my Windows browser"
-        "Run 'dir' command on Windows and show output"  
-        "Upload document.txt to C:/temp/"
-        "List files in C:/Users/username/Documents/"
-        ``````
-        
-        ### Setup Documentation
-        See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for complete setup instructions.
-        
-        ### What's New in v$version
-        - Enhanced MCP server integration
-        - Improved file transfer capabilities
-        - Better error handling and logging
-        - Updated documentation and examples
-        
-        ### Technical Details
-        - **Windows App**: RemoteControlApp.exe (runs in system tray)
-        - **MCP Server**: WinRemoteMcpServer.py (connects Claude to Windows)
-        - **Protocol**: HTTP JSON API over SSH tunnel (port 8417)
-        - **Security**: Local-only binding with SSH encryption
-        "@
-        
         # Create the release
-        gh release create "${{ github.ref_name }}" `
+        Write-Host "Creating GitHub release..."
+        gh release create $tag `
           --title "Remote Control v$version" `
-          --notes $releaseNotes `
+          --notes-file "release-notes.md" `
           --latest
         
         Write-Host "✓ GitHub release created successfully"
