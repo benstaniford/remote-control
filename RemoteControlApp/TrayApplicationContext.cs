@@ -24,7 +24,7 @@ namespace RemoteControlApp
                 Icon = GetIcon(),
                 ContextMenuStrip = new ContextMenuStrip(),
                 Visible = true,
-                Text = "Remote Control App - Listening on localhost:417"
+                Text = "Remote Control App - Listening on localhost:8417"
             };
 
             _trayIcon.ContextMenuStrip.Items.Add("Show Status", null, ShowStatus);
@@ -66,7 +66,7 @@ namespace RemoteControlApp
 
         private void ShowStatus(object sender, EventArgs e)
         {
-            MessageBox.Show("Remote Control App is running and listening on localhost:417\n\nJSON Protocol:\n{\n  \"action\": \"launch_browser\",\n  \"url\": \"https://example.com\"\n}", 
+            MessageBox.Show("Remote Control App is running and listening on localhost:8417\n\nJSON Protocol:\n{\n  \"action\": \"launch_browser\",\n  \"url\": \"https://example.com\"\n}", 
                            "Status", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
