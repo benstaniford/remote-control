@@ -36,6 +36,12 @@ ssh -R 8417:localhost:8417 user@linux-machine
 
 ### 3. Claude Desktop Integration
 
+**Clone the repository on your Linux/Mac machine:**
+```bash
+git clone https://github.com/benstaniford/remote-control.git
+cd remote-control
+```
+
 **Install MCP dependencies:**
 ```bash
 pip install mcp
@@ -47,7 +53,7 @@ pip install mcp
   "mcpServers": {
     "windows-remote": {
       "command": "python",
-      "args": ["/path/to/remote-control/WinRemoteMcpServer.py"],
+      "args": ["/full/path/to/remote-control/WinRemoteMcpServer.py"],
       "env": {}
     }
   }
