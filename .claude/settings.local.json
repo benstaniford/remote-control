@@ -4,13 +4,16 @@
       "Bash(mkdir:*)",
       "Bash(chmod:*)",
       "Read(//home/ben/dot-files/**)",
-      "Read(//home/ben/jira-command-line/**)"
+      "Read(//home/ben/jira-command-line/**)",
+      "mcp__windows-remote__launch_browser",
+      "mcp__windows-remote__shell_command",
+      "mcp__windows-remote__shell_get_output"
     ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "windows-remote"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
