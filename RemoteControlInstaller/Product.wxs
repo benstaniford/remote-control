@@ -39,9 +39,6 @@
       <Component Id="RemoteControlApp.exe" Guid="*">
         <File Id="RemoteControlApp.exe" Source="$(var.RemoteControlApp.TargetPath)" />
       </Component>
-      <Component Id="Newtonsoft.Json.dll" Guid="*">
-        <File Id="Newtonsoft.Json.dll" Source="$(var.RemoteControlApp.TargetDir)Newtonsoft.Json.dll" />
-      </Component>
     </ComponentGroup>
 
     <UI>
