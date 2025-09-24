@@ -17,11 +17,10 @@ This project bridges the gap between Claude Desktop and Windows systems by provi
 
 **Install and Run the Tray Application:**
 ```bash
-# Build the Windows application
-dotnet build RemoteControl.sln
+# Install the latest MSI from the releases section
 
-# Run the tray application (stays in system tray)
-RemoteControlApp\bin\Debug\RemoteControlApp.exe
+# Run the tray application which will now be on the PATH (stays in system tray)
+RemoteControlApp.exe
 ```
 
 ### 2. SSH Tunnel Setup
