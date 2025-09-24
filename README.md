@@ -22,6 +22,9 @@ dotnet build RemoteControl.sln
 
 # Run the tray application (stays in system tray)
 RemoteControlApp\bin\Debug\RemoteControlApp.exe
+
+# Run in detached mode (non-blocking, returns to command prompt)
+RemoteControlApp\bin\Debug\RemoteControlApp.exe --detached
 ```
 
 ### 2. SSH Tunnel Setup
