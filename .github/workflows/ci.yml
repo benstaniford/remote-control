@@ -163,62 +163,62 @@ jobs:
         Write-Host "Creating release for tag: $tag"
         Write-Host "Version: $version"
         
-        # Create release notes file to avoid PowerShell string issues
-        $releaseNotes = @"
-## Remote Control MCP Server v$version
-
-A comprehensive remote control solution that provides Claude Desktop with full access to a Windows machine through SSH tunneling.
-
-### Features
-- 🖥️ Windows tray application with HTTP API
-- 🤖 MCP server for Claude Desktop integration  
-- 💻 Remote shell operations
-- 📁 File transfer capabilities
-- 🌐 Browser control
-
-### Installation
-1. Download and run RemoteControlAppInstaller-v$version.msi
-2. Set up SSH tunnel: ssh -R 8417:localhost:8417 user@linux-machine
-3. Configure Claude Desktop with the MCP server
-4. Start controlling your Windows machine with natural language!
-
-### Quick Start
-```bash
-# Install MCP dependencies
-pip install mcp
-
-# Configure Claude Desktop MCP settings
-{
-  "mcpServers": {
-    "windows-remote": {
-      "command": "python",
-      "args": ["/path/to/WinRemoteMcpServer.py"]
-    }
-  }
-}
-
-# Start using with Claude Desktop
-"Launch https://github.com in my Windows browser"
-"Run 'dir' command on Windows and show output"  
-"Upload document.txt to C:/temp/"
-"List files in C:/Users/username/Documents/"
-```
-
-### Setup Documentation
-See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for complete setup instructions.
-
-### What's New in v$version
-- Enhanced MCP server integration
-- Improved file transfer capabilities
-- Better error handling and logging
-- Updated documentation and examples
-
-### Technical Details
-- **Windows App**: RemoteControlApp.exe (runs in system tray)
-- **MCP Server**: WinRemoteMcpServer.py (connects Claude to Windows)
-- **Protocol**: HTTP JSON API over SSH tunnel (port 8417)
-- **Security**: Local-only binding with SSH encryption
-"@
+        # Create release notes using PowerShell array and join
+        $releaseNotes = @(
+          "## Remote Control MCP Server v$version",
+          "",
+          "A comprehensive remote control solution that provides Claude Desktop with full access to a Windows machine through SSH tunneling.",
+          "",
+          "### Features",
+          "- 🖥️ Windows tray application with HTTP API",
+          "- 🤖 MCP server for Claude Desktop integration",
+          "- 💻 Remote shell operations", 
+          "- 📁 File transfer capabilities",
+          "- 🌐 Browser control",
+          "",
+          "### Installation", 
+          "1. Download and run RemoteControlAppInstaller-v$version.msi",
+          "2. Set up SSH tunnel: ssh -R 8417:localhost:8417 user@linux-machine",
+          "3. Configure Claude Desktop with the MCP server",
+          "4. Start controlling your Windows machine with natural language!",
+          "",
+          "### Quick Start",
+          '```bash',
+          "# Install MCP dependencies", 
+          "pip install mcp",
+          "",
+          "# Configure Claude Desktop MCP settings",
+          '{',
+          '  "mcpServers": {',
+          '    "windows-remote": {',
+          '      "command": "python",',
+          '      "args": ["/path/to/WinRemoteMcpServer.py"]',
+          '    }',
+          '  }',
+          '}',
+          "",
+          "# Start using with Claude Desktop",
+          '"Launch https://github.com in my Windows browser"',
+          '"Run dir command on Windows and show output"',
+          '"Upload document.txt to C:/temp/"',
+          '"List files in C:/Users/username/Documents/"',
+          '```',
+          "",
+          "### Setup Documentation",
+          "See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for complete setup instructions.",
+          "",
+          "### What's New in v$version",
+          "- Enhanced MCP server integration",
+          "- Improved file transfer capabilities", 
+          "- Better error handling and logging",
+          "- Updated documentation and examples",
+          "",
+          "### Technical Details",
+          "- **Windows App**: RemoteControlApp.exe (runs in system tray)",
+          "- **MCP Server**: WinRemoteMcpServer.py (connects Claude to Windows)",
+          "- **Protocol**: HTTP JSON API over SSH tunnel (port 8417)",
+          "- **Security**: Local-only binding with SSH encryption"
+        ) -join "`n"
         
         # Write release notes to file
         $releaseNotes | Out-File -FilePath "release-notes.md" -Encoding utf8
