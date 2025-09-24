@@ -26,7 +26,7 @@ RemoteControlApp\bin\Debug\RemoteControlApp.exe
 
 ### 2. SSH Tunnel Setup
 
-**From your Linux/Mac machine:**
+**From your Windows machine:**
 ```bash
 # Create reverse SSH tunnel to forward port 8417
 ssh -R 8417:localhost:8417 user@linux-machine
