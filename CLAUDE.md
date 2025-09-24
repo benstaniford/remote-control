@@ -17,7 +17,7 @@ This is a C# Windows tray application that provides remote browser control, shel
 
 ### Core Components
 
-- **Program.cs**: Entry point that starts the tray application context with support for detached mode (--detached or -d)
+- **Program.cs**: Entry point that starts the tray application context
 - **TrayApplicationContext**: Manages system tray icon, context menu, HTTP server lifecycle, shell manager, and file manager
 - **HttpServer**: HTTP listener on port 8417 with JSON protocol handling and CORS support
 - **BrowserLauncher**: URL validation and browser launching using `Process.Start()`
