@@ -1,10 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" Name="Remote Control App" Language="1033" Version="1.0.0.0" Manufacturer="Your Company" UpgradeCode="12345678-1234-5678-9012-123456789012">
+  <Product Id="*" Name="Remote Control App" Language="1033" Version="1.0.0.0" Manufacturer="Your Company" UpgradeCode="A1B2C3D4-5E6F-7890-ABCD-EF1234567890">
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
-    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." AllowSameVersionUpgrades="yes" />
     <MediaTemplate EmbedCab="yes" />
+
+    <!-- Custom actions to kill existing processes -->
+    <CustomAction Id="KillRemoteControlApp" 
+                  BinaryKey="WixCA" 
+                  DllEntry="CAQuietExec" 
+                  Execute="immediate" 
+                  Return="ignore" />
+    <Property Id="QtExecCmdLine" Value='taskkill /F /IM RemoteControlApp.exe /T' />
+    
+    <!-- Custom action to start application after installation -->
+    <CustomAction Id="StartRemoteControlApp" 
+                  Directory="INSTALLFOLDER" 
+                  ExeCommand="RemoteControlApp.exe" 
+                  Execute="commit" 
+                  Return="asyncNoWait" 
+                  Impersonate="yes" />
 
     <Feature Id="ProductFeature" Title="Remote Control App" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
@@ -45,6 +61,12 @@
         <File Id="RemoteControlApp.exe" Source="$(var.RemoteControlApp.TargetPath)" />
       </Component>
     </ComponentGroup>
+
+    <!-- Installation sequence -->
+    <InstallExecuteSequence>
+      <Custom Action="KillRemoteControlApp" Before="InstallValidate">NOT Installed</Custom>
+      <Custom Action="StartRemoteControlApp" After="InstallFinalize">NOT Installed</Custom>
+    </InstallExecuteSequence>
 
     <UI>
       <UIRef Id="WixUI_Minimal" />
