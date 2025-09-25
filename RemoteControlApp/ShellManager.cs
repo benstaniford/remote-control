@@ -28,7 +28,7 @@ namespace RemoteControlApp
             _cancellationTokenSource = new CancellationTokenSource();
         }
 
-        public void StartShell()
+        public void StartShell(string workingDirectory = null)
         {
             lock (_processLock)
             {
@@ -48,7 +48,8 @@ namespace RemoteControlApp
                             RedirectStandardError = true,
                             CreateNoWindow = true,
                             StandardOutputEncoding = Encoding.UTF8,
-                            StandardErrorEncoding = Encoding.UTF8
+                            StandardErrorEncoding = Encoding.UTF8,
+                            WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory
                         }
                     };
 

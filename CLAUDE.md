@@ -37,9 +37,11 @@ JSON API accepts POST requests with format:
 #### Shell Commands:
 ```json
 {"action": "shell_start"}
+{"action": "shell_start", "working_directory": "C:/Users/username/Documents"}
 {"action": "shell_input", "input": "dir"}
 {"action": "shell_output"}
 {"action": "shell_status"}
+{"action": "shell_cd", "directory": "C:/temp"}
 {"action": "shell_stop"}
 ```
 
@@ -104,10 +106,12 @@ if client.test_connection():
     client.launch_browser("https://example.com")
     
     # Shell operations
-    client.start_shell()
+    client.start_shell()  # Start in default directory
+    client.start_shell("C:/temp")  # Start in specific directory
     client.send_shell_input("dir")
     result = client.get_shell_output()
     print(result["output"])
+    client.change_directory("C:/Users")  # Change directory of running shell
     client.stop_shell()
     
     # File operations
@@ -183,11 +187,12 @@ python WinRemoteMcpServer.py
 - `launch_browser`: Open URLs in Windows default browser
 
 **Shell Operations:**
-- `shell_start`: Start Windows Command Prompt session
+- `shell_start`: Start Windows Command Prompt session (optionally with working directory)
 - `shell_stop`: Stop shell session
 - `shell_status`: Check if shell is running
-- `shell_command`: Execute commands and get output
+- `shell_command`: Execute commands and get output (optionally with working directory for auto-start)
 - `shell_get_output`: Retrieve pending output
+- `shell_cd`: Change working directory of running shell
 
 **File Operations:**
 - `upload_file`: Transfer files from local to Windows
@@ -210,6 +215,8 @@ Once configured, Claude Desktop will automatically have access to all Windows Re
 "Can you list the files in C:/temp/ on my Windows machine?"
 "Please upload this document.txt file to C:/Users/username/Documents/"
 "Run 'dir' command on Windows and show me the output"
+"Start a shell in C:/Projects and run 'git status'"
+"Change to the C:/temp directory and list the files"
 "Launch https://github.com in my Windows browser"
 ```
 

@@ -73,7 +73,12 @@ class WinRemoteMCPServer:
                     description="Start a Windows Command Prompt shell session",
                     inputSchema={
                         "type": "object",
-                        "properties": {},
+                        "properties": {
+                            "working_directory": {
+                                "type": "string",
+                                "description": "Initial working directory for the shell (optional)"
+                            }
+                        },
                         "required": []
                     }
                 ),
@@ -109,6 +114,10 @@ class WinRemoteMCPServer:
                                 "type": "boolean",
                                 "description": "Automatically start shell if not running (default: true)",
                                 "default": True
+                            },
+                            "working_directory": {
+                                "type": "string",
+                                "description": "Working directory to use when starting shell (only used if auto_start is true)"
                             }
                         },
                         "required": ["command"]
@@ -121,6 +130,20 @@ class WinRemoteMCPServer:
                         "type": "object",
                         "properties": {},
                         "required": []
+                    }
+                ),
+                Tool(
+                    name="shell_cd",
+                    description="Change the working directory of the running Windows shell",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "directory": {
+                                "type": "string",
+                                "description": "The directory path to change to"
+                            }
+                        },
+                        "required": ["directory"]
                     }
                 ),
                 
@@ -283,6 +306,8 @@ class WinRemoteMCPServer:
                     return await self._shell_command(arguments)
                 elif name == "shell_get_output":
                     return await self._shell_get_output(arguments)
+                elif name == "shell_cd":
+                    return await self._shell_cd(arguments)
                 elif name == "upload_file":
                     return await self._upload_file(arguments)
                 elif name == "download_file":
@@ -338,15 +363,19 @@ class WinRemoteMCPServer:
     # Shell operation methods
     async def _shell_start(self, arguments: Dict[str, Any]) -> Sequence[TextContent]:
         """Start a Windows shell session."""
+        working_directory = arguments.get("working_directory")
+        
         try:
-            success = self.client.start_shell()
+            success = self.client.start_shell(working_directory)
             result = {
                 "success": success,
-                "message": "Shell started successfully" if success else "Failed to start shell"
+                "working_directory": working_directory,
+                "message": f"Shell started successfully" + (f" in {working_directory}" if working_directory else "") if success else "Failed to start shell"
             }
         except Exception as e:
             result = {
                 "success": False,
+                "working_directory": working_directory,
                 "error": str(e)
             }
         
@@ -388,11 +417,12 @@ class WinRemoteMCPServer:
         """Execute a shell command and get output."""
         command = arguments["command"]
         auto_start = arguments.get("auto_start", True)
+        working_directory = arguments.get("working_directory")
         
         try:
             # Start shell if requested and not running
             if auto_start and not self.client.get_shell_status():
-                self.client.start_shell()
+                self.client.start_shell(working_directory)
                 await asyncio.sleep(0.1)  # Brief delay for shell to start
             
             # Send command
@@ -406,6 +436,7 @@ class WinRemoteMCPServer:
             
             result = {
                 "command": command,
+                "working_directory": working_directory,
                 "success": True,
                 "output": output_result["output"],
                 "error": output_result["error"]
@@ -413,6 +444,7 @@ class WinRemoteMCPServer:
         except Exception as e:
             result = {
                 "command": command,
+                "working_directory": working_directory,
                 "success": False,
                 "error": str(e)
             }
@@ -431,6 +463,26 @@ class WinRemoteMCPServer:
         except Exception as e:
             result = {
                 "success": False,
+                "error": str(e)
+            }
+        
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+    async def _shell_cd(self, arguments: Dict[str, Any]) -> Sequence[TextContent]:
+        """Change working directory of the running shell."""
+        directory = arguments["directory"]
+        
+        try:
+            success = self.client.change_directory(directory)
+            result = {
+                "success": success,
+                "directory": directory,
+                "message": f"Changed directory to {directory}" if success else "Failed to change directory"
+            }
+        except Exception as e:
+            result = {
+                "success": False,
+                "directory": directory,
                 "error": str(e)
             }
         

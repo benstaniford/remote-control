@@ -134,9 +134,12 @@ class RemoteControlClient:
             "url": self.base_url
         }
     
-    def start_shell(self) -> bool:
+    def start_shell(self, working_directory: Optional[str] = None) -> bool:
         """
         Start a shell process on the remote Windows machine.
+        
+        Args:
+            working_directory: Initial working directory for the shell (optional)
         
         Returns:
             True if successful, False otherwise
@@ -146,6 +149,8 @@ class RemoteControlClient:
             RuntimeError: If server returns an error
         """
         data = {"action": "shell_start"}
+        if working_directory:
+            data["working_directory"] = working_directory
         
         try:
             response = self._make_request(data)
@@ -273,6 +278,43 @@ class RemoteControlClient:
             
             if response.get("success"):
                 return response.get("running", False)
+            else:
+                error_msg = response.get("error", "Unknown error")
+                raise RuntimeError(f"Server error: {error_msg}")
+                
+        except (ConnectionError, ValueError) as e:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Request failed: {e}") from e
+    
+    def change_directory(self, directory: str) -> bool:
+        """
+        Change the working directory of the running shell.
+        
+        Args:
+            directory: The directory path to change to
+            
+        Returns:
+            True if successful, False otherwise
+            
+        Raises:
+            ConnectionError: If unable to connect to server
+            ValueError: If directory is empty
+            RuntimeError: If server returns an error
+        """
+        if not directory or not directory.strip():
+            raise ValueError("Directory cannot be empty")
+            
+        data = {
+            "action": "shell_cd",
+            "directory": directory.strip()
+        }
+        
+        try:
+            response = self._make_request(data)
+            
+            if response.get("success"):
+                return True
             else:
                 error_msg = response.get("error", "Unknown error")
                 raise RuntimeError(f"Server error: {error_msg}")

@@ -149,7 +149,8 @@ namespace RemoteControlApp
                     case "shell_start":
                         try
                         {
-                            _shellManager.StartShell();
+                            var workingDirectory = ExtractJsonValue(jsonCommand, "working_directory");
+                            _shellManager.StartShell(workingDirectory);
                             return CreateJsonResponse(true, "Shell started successfully");
                         }
                         catch (Exception ex)
@@ -206,6 +207,23 @@ namespace RemoteControlApp
                         catch (Exception ex)
                         {
                             return CreateJsonResponse(false, "Failed to get shell status: " + ex.Message);
+                        }
+
+                    case "shell_cd":
+                        var directory = ExtractJsonValue(jsonCommand, "directory");
+                        if (string.IsNullOrEmpty(directory))
+                        {
+                            return CreateJsonResponse(false, "Directory path is required");
+                        }
+
+                        try
+                        {
+                            _shellManager.SendInput($"cd /d \"{directory}\"");
+                            return CreateJsonResponse(true, "Changed directory successfully");
+                        }
+                        catch (Exception ex)
+                        {
+                            return CreateJsonResponse(false, "Failed to change directory: " + ex.Message);
                         }
 
                     case "file_upload":
