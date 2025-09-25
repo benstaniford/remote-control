@@ -32,6 +32,7 @@ namespace RemoteControlApp
             };
 
             _trayIcon.ContextMenuStrip.Items.Add("Show Status", null, ShowStatus);
+            _trayIcon.ContextMenuStrip.Items.Add("About", null, ShowAbout);
             _trayIcon.ContextMenuStrip.Items.Add("-");
             _trayIcon.ContextMenuStrip.Items.Add("Exit", null, Exit);
 
@@ -73,6 +74,14 @@ namespace RemoteControlApp
             var shellStatus = _shellManager.IsRunning ? "Running" : "Stopped";
             MessageBox.Show($"Remote Control App is running and listening on localhost:8417\n\nShell Status: {shellStatus}\n\nJSON Protocol:\n{{\n  \"action\": \"launch_browser\",\n  \"url\": \"https://example.com\"\n}}\n\nShell Actions:\n- shell_start, shell_stop, shell_status\n- shell_input, shell_output", 
                            "Status", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void ShowAbout(object sender, EventArgs e)
+        {
+            using (var aboutForm = new AboutForm())
+            {
+                aboutForm.ShowDialog();
+            }
         }
 
         private void Exit(object sender, EventArgs e)
