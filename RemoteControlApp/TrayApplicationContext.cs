@@ -44,7 +44,7 @@ namespace RemoteControlApp
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                var stream = assembly.GetManifestResourceStream("RemoteControlApp.app.ico");
+                var stream = assembly.GetManifestResourceStream("RemoteControlApp.remote.ico");
                 if (stream != null)
                 {
                     return new Icon(stream);
