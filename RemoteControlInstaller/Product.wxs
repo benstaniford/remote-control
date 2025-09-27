@@ -8,11 +8,10 @@
 
     <!-- Custom actions to kill existing processes -->
     <CustomAction Id="KillRemoteControlApp" 
-                  BinaryKey="WixCA" 
-                  DllEntry="CAQuietExec" 
+                  Directory="SystemFolder" 
+                  ExeCommand='taskkill /F /IM RemoteControlApp.exe /T' 
                   Execute="immediate" 
                   Return="ignore" />
-    <Property Id="QtExecCmdLine" Value='taskkill /F /IM RemoteControlApp.exe /T' />
     
     <!-- Custom action to start application after installation -->
     <CustomAction Id="StartRemoteControlApp" 
@@ -30,13 +29,14 @@
     </Feature>
 
     <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="SystemFolder" />
       <Directory Id="ProgramFilesFolder">
         <Directory Id="INSTALLFOLDER" Name="Remote Control App">
           <Component Id="ApplicationShortcut" Guid="*">
             <Shortcut Id="ApplicationStartMenuShortcut"
                       Name="Remote Control App"
                       Description="Remote Control Tray Application"
-                      Target="[#RemoteControlApp.exe]"
+                      Target="[INSTALLFOLDER]RemoteControlApp.exe"
                       WorkingDirectory="INSTALLFOLDER"
                       Directory="ProgramMenuFolder" />
             <RemoveFolder Id="INSTALLFOLDER" On="uninstall" />
@@ -65,7 +65,7 @@
     <!-- Installation sequence -->
     <InstallExecuteSequence>
       <Custom Action="KillRemoteControlApp" Before="InstallValidate">NOT Installed</Custom>
-      <Custom Action="StartRemoteControlApp" After="InstallFinalize">NOT Installed</Custom>
+      <Custom Action="StartRemoteControlApp" Before="InstallFinalize">NOT Installed</Custom>
     </InstallExecuteSequence>
 
     <UI>
