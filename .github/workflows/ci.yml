@@ -175,6 +175,32 @@ jobs:
         $env:PATH += ";C:\Program Files (x86)\WiX Toolset v3.11\bin"
         echo "PATH=$env:PATH" >> $env:GITHUB_ENV
 
+    - name: Remove BOM from WiX files
+      run: |
+        Write-Host "Checking and removing BOM from WiX files..."
+        $wxsPath = "RemoteControlInstaller/Product.wxs"
+        $wixprojPath = "RemoteControlInstaller/RemoteControlInstaller.wixproj"
+        
+        # Function to remove BOM from file
+        function Remove-BOM {
+            param($filePath)
+            if (Test-Path $filePath) {
+                $content = Get-Content $filePath -Raw -Encoding UTF8
+                # Remove BOM if present (EF BB BF)
+                if ($content.StartsWith([char]0xFEFF)) {
+                    Write-Host "Removing BOM from: $filePath"
+                    $content = $content.Substring(1)
+                    [System.IO.File]::WriteAllText($filePath, $content, [System.Text.UTF8Encoding]::new($false))
+                } else {
+                    Write-Host "No BOM found in: $filePath"
+                }
+            }
+        }
+        
+        Remove-BOM $wxsPath
+        Remove-BOM $wixprojPath
+        Write-Host "✓ BOM check/removal completed"
+
     - name: Build WiX Installer
       run: |
         $env:PATH += ";C:\Program Files (x86)\WiX Toolset v3.11\bin"
