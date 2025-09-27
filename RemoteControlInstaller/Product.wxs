@@ -75,3 +75,4 @@
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
   </Product>
 </Wix>
+
