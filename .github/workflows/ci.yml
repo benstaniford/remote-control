@@ -149,7 +149,7 @@ jobs:
         $content = Get-Content $wxsPath -Raw
         
         # Update the Product Version attribute (WiX requires x.x.x.x format)
-        $content = $content -replace 'Version="[\d\.]*"', "Version=`"$version.0`""
+        $content = $content -replace '(<Product[^>]*\s)Version="[\d\.]*"', "`$1Version=`"$version.0`""
         
         # Write back to file
         Set-Content $wxsPath -Value $content -NoNewline
