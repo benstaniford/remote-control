@@ -60,6 +60,10 @@ namespace RemoteControlApp
 
                 try
                 {
+                    // Create a new cancellation token source for this shell session
+                    _cancellationTokenSource?.Dispose();
+                    _cancellationTokenSource = new CancellationTokenSource();
+                    
                     var workDir = workingDirectory ?? Environment.CurrentDirectory;
                     _lastWorkingDirectory = workDir;
                     Logger.LogAction("SHELL_START_ATTEMPT", $"Starting shell in directory: {workDir}");
@@ -83,6 +87,7 @@ namespace RemoteControlApp
                     _shellProcess.Start();
                     _shellInput = _shellProcess.StandardInput;
 
+                    Logger.LogAction("SHELL_READERS_STARTING", "Starting output and error reader tasks");
                     _outputReaderTask = Task.Run(() => ReadOutputAsync(_shellProcess.StandardOutput, _outputBuffer, _cancellationTokenSource.Token));
                     _errorReaderTask = Task.Run(() => ReadOutputAsync(_shellProcess.StandardError, _errorBuffer, _cancellationTokenSource.Token));
 
@@ -128,6 +133,7 @@ namespace RemoteControlApp
         {
             // Check process health first
             var isHealthy = IsRunning;
+            var readerTasksHealthy = AreReaderTasksHealthy();
             
             var output = new StringBuilder();
             int lineCount = 0;
@@ -138,7 +144,15 @@ namespace RemoteControlApp
             }
             
             var result = output.ToString();
-            Logger.LogAction("SHELL_OUTPUT_RETRIEVED", $"Retrieved {lineCount} lines, {result.Length} characters, Shell healthy: {isHealthy}");
+            Logger.LogAction("SHELL_OUTPUT_RETRIEVED", $"Retrieved {lineCount} lines, {result.Length} characters, Shell healthy: {isHealthy}, Readers healthy: {readerTasksHealthy}");
+            
+            // If no output but readers are dead, try to restart them
+            if (lineCount == 0 && isHealthy && !readerTasksHealthy)
+            {
+                Logger.LogWarning("No output retrieved but shell is healthy and readers are dead - attempting to restart readers");
+                TryRestartReaderTasks();
+            }
+            
             return result;
         }
 
@@ -196,10 +210,14 @@ namespace RemoteControlApp
 
         private async Task ReadOutputAsync(StreamReader reader, ConcurrentQueue<string> buffer, CancellationToken cancellationToken)
         {
+            var readerType = buffer == _outputBuffer ? "OUTPUT" : "ERROR";
+            Logger.LogAction($"SHELL_{readerType}_READER_STARTED", $"Reader task started, cancellation requested: {cancellationToken.IsCancellationRequested}");
+            
             try
             {
                 char[] charBuffer = new char[1024];
                 StringBuilder lineBuffer = new StringBuilder();
+                int linesRead = 0;
                 
                 while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
                 {
@@ -218,6 +236,7 @@ namespace RemoteControlApp
                                     line = line.Substring(0, line.Length - 1);
                                 }
                                 buffer.Enqueue(line);
+                                linesRead++;
                                 lineBuffer.Clear();
                             }
                             else if (c != '\r')
@@ -232,6 +251,7 @@ namespace RemoteControlApp
                         if (lineBuffer.Length > 0 && reader.Peek() == -1)
                         {
                             buffer.Enqueue(lineBuffer.ToString());
+                            linesRead++;
                             lineBuffer.Clear();
                         }
                     }
@@ -241,6 +261,7 @@ namespace RemoteControlApp
                         if (lineBuffer.Length > 0)
                         {
                             buffer.Enqueue(lineBuffer.ToString());
+                            linesRead++;
                             lineBuffer.Clear();
                         }
                         // Small delay to prevent tight loop when no data is available
@@ -252,12 +273,14 @@ namespace RemoteControlApp
                 if (lineBuffer.Length > 0)
                 {
                     buffer.Enqueue(lineBuffer.ToString());
+                    linesRead++;
                 }
+                
+                Logger.LogAction($"SHELL_{readerType}_READER_FINISHED", $"Reader task finished, lines read: {linesRead}, cancellation: {cancellationToken.IsCancellationRequested}");
             }
             catch (Exception ex)
             {
-                // Log the exception for debugging
-                Logger.LogWarning($"ReadOutputAsync exception: {ex.Message}");
+                Logger.LogError($"SHELL_{readerType}_READER_ERROR: Reader task failed: {ex.Message}");
             }
         }
 
@@ -272,6 +295,55 @@ namespace RemoteControlApp
 
             _shellInput = null;
             _shellProcess = null;
+        }
+
+        private bool AreReaderTasksHealthy()
+        {
+            try
+            {
+                var outputTaskHealthy = _outputReaderTask != null && 
+                                       !_outputReaderTask.IsCompleted && 
+                                       !_outputReaderTask.IsCanceled && 
+                                       !_outputReaderTask.IsFaulted;
+                                       
+                var errorTaskHealthy = _errorReaderTask != null && 
+                                      !_errorReaderTask.IsCompleted && 
+                                      !_errorReaderTask.IsCanceled && 
+                                      !_errorReaderTask.IsFaulted;
+                                      
+                return outputTaskHealthy && errorTaskHealthy;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        private void TryRestartReaderTasks()
+        {
+            lock (_processLock)
+            {
+                if (!_isRunning || _shellProcess == null || _shellProcess.HasExited)
+                {
+                    Logger.LogWarning("Cannot restart reader tasks - shell process is not running");
+                    return;
+                }
+
+                try
+                {
+                    Logger.LogAction("SHELL_READERS_RESTART", "Restarting reader tasks");
+                    
+                    // Start new reader tasks (the old ones should have exited)
+                    _outputReaderTask = Task.Run(() => ReadOutputAsync(_shellProcess.StandardOutput, _outputBuffer, _cancellationTokenSource.Token));
+                    _errorReaderTask = Task.Run(() => ReadOutputAsync(_shellProcess.StandardError, _errorBuffer, _cancellationTokenSource.Token));
+                    
+                    Logger.LogAction("SHELL_READERS_RESTARTED", "Reader tasks restarted successfully");
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Failed to restart reader tasks: {ex.Message}");
+                }
+            }
         }
 
         public bool TryAutoRestart()
