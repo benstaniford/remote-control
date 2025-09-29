@@ -103,6 +103,7 @@
     <Compile Include="BrowserLauncher.cs" />
     <Compile Include="ShellManager.cs" />
     <Compile Include="FileManager.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="AboutForm.cs">
       <SubType>Form</SubType>
     </Compile>
