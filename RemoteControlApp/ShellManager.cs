@@ -14,7 +14,7 @@ namespace RemoteControlApp
         private StreamWriter _shellInput;
         private readonly ConcurrentQueue<string> _outputBuffer;
         private readonly ConcurrentQueue<string> _errorBuffer;
-        private readonly CancellationTokenSource _cancellationTokenSource;
+        private CancellationTokenSource _cancellationTokenSource;
         private Task _outputReaderTask;
         private Task _errorReaderTask;
         private readonly object _processLock = new object();
