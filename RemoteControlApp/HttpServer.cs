@@ -194,6 +194,29 @@ namespace RemoteControlApp
                             Logger.LogAction("SHELL_COMMAND", $"Executed: {input}");
                             return CreateJsonResponse(true, "Input sent successfully");
                         }
+                        catch (InvalidOperationException ex) when (ex.Message.Contains("Shell is not running"))
+                        {
+                            Logger.LogWarning($"Shell was dead, attempting auto-restart for command: {input}");
+                            try
+                            {
+                                if (_shellManager.TryAutoRestart())
+                                {
+                                    _shellManager.SendInput(input);
+                                    Logger.LogAction("SHELL_COMMAND_AFTER_RESTART", $"Executed after restart: {input}");
+                                    return CreateJsonResponse(true, "Input sent successfully (after restart)");
+                                }
+                                else
+                                {
+                                    Logger.LogError("Auto-restart failed");
+                                    return CreateJsonResponse(false, "Shell is not running and restart failed");
+                                }
+                            }
+                            catch (Exception restartEx)
+                            {
+                                Logger.LogError($"Failed to restart shell: {restartEx.Message}");
+                                return CreateJsonResponse(false, "Shell is not running and restart failed: " + restartEx.Message);
+                            }
+                        }
                         catch (Exception ex)
                         {
                             Logger.LogError($"Failed to send shell input: {ex.Message}");

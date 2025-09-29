@@ -19,7 +19,27 @@ namespace RemoteControlApp
         private Task _errorReaderTask;
         private readonly object _processLock = new object();
 
-        public bool IsRunning { get; private set; }
+        public bool IsRunning 
+        { 
+            get 
+            {
+                lock (_processLock)
+                {
+                    // Check if we think it's running but the process has actually died
+                    if (_isRunning && _shellProcess != null && _shellProcess.HasExited)
+                    {
+                        Logger.LogError($"Shell process has died unexpectedly (exit code: {_shellProcess.ExitCode})");
+                        CleanupProcess();
+                        _isRunning = false;
+                    }
+                    return _isRunning;
+                }
+            }
+            private set { _isRunning = value; }
+        }
+        
+        private bool _isRunning;
+        private string _lastWorkingDirectory;
 
         public ShellManager()
         {
@@ -32,7 +52,7 @@ namespace RemoteControlApp
         {
             lock (_processLock)
             {
-                if (IsRunning)
+                if (_isRunning)
                 {
                     Logger.LogWarning("Shell start requested but shell is already running");
                     return;
@@ -41,6 +61,7 @@ namespace RemoteControlApp
                 try
                 {
                     var workDir = workingDirectory ?? Environment.CurrentDirectory;
+                    _lastWorkingDirectory = workDir;
                     Logger.LogAction("SHELL_START_ATTEMPT", $"Starting shell in directory: {workDir}");
                     
                     _shellProcess = new Process
@@ -65,7 +86,7 @@ namespace RemoteControlApp
                     _outputReaderTask = Task.Run(() => ReadOutputAsync(_shellProcess.StandardOutput, _outputBuffer, _cancellationTokenSource.Token));
                     _errorReaderTask = Task.Run(() => ReadOutputAsync(_shellProcess.StandardError, _errorBuffer, _cancellationTokenSource.Token));
 
-                    IsRunning = true;
+                    _isRunning = true;
                     Logger.LogAction("SHELL_STARTED", $"Shell process started successfully (PID: {_shellProcess.Id})");
                 }
                 catch (Exception ex)
@@ -81,6 +102,7 @@ namespace RemoteControlApp
         {
             lock (_processLock)
             {
+                // Check if shell is actually running (this will detect dead processes)
                 if (!IsRunning || _shellInput == null)
                 {
                     Logger.LogError("Shell input attempted but shell is not running");
@@ -104,36 +126,52 @@ namespace RemoteControlApp
 
         public string GetOutput()
         {
+            // Check process health first
+            var isHealthy = IsRunning;
+            
             var output = new StringBuilder();
+            int lineCount = 0;
             while (_outputBuffer.TryDequeue(out string line))
             {
                 output.AppendLine(line);
+                lineCount++;
             }
-            return output.ToString();
+            
+            var result = output.ToString();
+            Logger.LogAction("SHELL_OUTPUT_RETRIEVED", $"Retrieved {lineCount} lines, {result.Length} characters, Shell healthy: {isHealthy}");
+            return result;
         }
 
         public string GetError()
         {
             var error = new StringBuilder();
+            int lineCount = 0;
             while (_errorBuffer.TryDequeue(out string line))
             {
                 error.AppendLine(line);
+                lineCount++;
             }
-            return error.ToString();
+            
+            var result = error.ToString();
+            if (lineCount > 0)
+            {
+                Logger.LogAction("SHELL_ERROR_RETRIEVED", $"Retrieved {lineCount} error lines, {result.Length} characters");
+            }
+            return result;
         }
 
         public void StopShell()
         {
             lock (_processLock)
             {
-                if (!IsRunning)
+                if (!_isRunning)
                 {
                     Logger.LogWarning("Shell stop requested but shell is not running");
                     return;
                 }
 
                 Logger.LogAction("SHELL_STOP_ATTEMPT", "Stopping shell process");
-                IsRunning = false;
+                _isRunning = false;
                 _cancellationTokenSource.Cancel();
 
                 try
@@ -234,6 +272,30 @@ namespace RemoteControlApp
 
             _shellInput = null;
             _shellProcess = null;
+        }
+
+        public bool TryAutoRestart()
+        {
+            lock (_processLock)
+            {
+                if (_isRunning)
+                {
+                    Logger.LogWarning("Auto-restart requested but shell is still running");
+                    return true;
+                }
+
+                try
+                {
+                    Logger.LogAction("SHELL_AUTO_RESTART", $"Attempting to restart shell in directory: {_lastWorkingDirectory ?? Environment.CurrentDirectory}");
+                    StartShell(_lastWorkingDirectory);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Auto-restart failed: {ex.Message}");
+                    return false;
+                }
+            }
         }
 
         public void Dispose()
