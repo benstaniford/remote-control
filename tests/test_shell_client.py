@@ -62,6 +62,24 @@ def test_shell_api():
         except Exception as e:
             print(f"✗ Shell input/output failed: {e}")
             
+        # Test complex command with quotes and backslashes
+        print("\n4b. Testing complex command with quotes...")
+        try:
+            complex_cmd = 'call "C:\\Program Files\\Test\\test.bat" && echo "Command with quotes completed"'
+            client.send_shell_input(complex_cmd)
+            print(f"✓ Complex command sent: {complex_cmd}")
+            
+            # Wait and get output
+            time.sleep(1)
+            result = client.get_shell_output()
+            if result["output"]:
+                print(f"✓ Output received: {result['output'].strip()}")
+            if result["error"]:
+                print(f"! Error output: {result['error'].strip()}")
+                
+        except Exception as e:
+            print(f"✗ Complex command failed: {e}")
+            
         # Test stopping shell
         print("\n5. Testing shell stop...")
         try:

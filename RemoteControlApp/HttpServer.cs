@@ -391,10 +391,58 @@ namespace RemoteControlApp
         {
             try
             {
-                // Simple regex-based JSON value extraction for basic cases
-                var pattern = "\"" + key + "\"\\s*:\\s*\"([^\"]*)\"";
-                var match = Regex.Match(json, pattern, RegexOptions.IgnoreCase);
-                return match.Success ? match.Groups[1].Value : null;
+                // Find the key in the JSON
+                var keyPattern = "\"" + key + "\"\\s*:\\s*\"";
+                var keyMatch = Regex.Match(json, keyPattern, RegexOptions.IgnoreCase);
+                if (!keyMatch.Success)
+                    return null;
+
+                // Start position after the opening quote of the value
+                int startPos = keyMatch.Index + keyMatch.Length;
+                
+                // Find the closing quote, handling escaped quotes
+                StringBuilder value = new StringBuilder();
+                bool escapeNext = false;
+                
+                for (int i = startPos; i < json.Length; i++)
+                {
+                    char c = json[i];
+                    
+                    if (escapeNext)
+                    {
+                        // Add the escaped character (handle common JSON escapes)
+                        switch (c)
+                        {
+                            case 'n': value.Append('\n'); break;
+                            case 'r': value.Append('\r'); break;
+                            case 't': value.Append('\t'); break;
+                            case '\\': value.Append('\\'); break;
+                            case '"': value.Append('"'); break;
+                            case '/': value.Append('/'); break;
+                            default: 
+                                value.Append('\\');
+                                value.Append(c);
+                                break;
+                        }
+                        escapeNext = false;
+                    }
+                    else if (c == '\\')
+                    {
+                        escapeNext = true;
+                    }
+                    else if (c == '"')
+                    {
+                        // Found the closing quote
+                        return value.ToString();
+                    }
+                    else
+                    {
+                        value.Append(c);
+                    }
+                }
+                
+                // If we get here, no closing quote was found
+                return null;
             }
             catch
             {
