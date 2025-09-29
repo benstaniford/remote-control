@@ -10,7 +10,8 @@
       "mcp__windows-remote__shell_get_output",
       "Bash(python tests/test_shell_client.py)",
       "Bash(python tests:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

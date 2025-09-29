@@ -28,6 +28,7 @@ namespace RemoteControlApp
         public void Start()
         {
             _listener.Start();
+            Logger.LogInfo("HTTP Server started on localhost:8417");
             _listenerTask = Task.Run(async () => await ListenForRequests(_cancellationTokenSource.Token));
         }
 
@@ -35,6 +36,7 @@ namespace RemoteControlApp
         {
             _cancellationTokenSource.Cancel();
             _listener.Stop();
+            Logger.LogInfo("HTTP Server stopped");
             _listenerTask?.Wait(5000);
         }
 
@@ -60,10 +62,15 @@ namespace RemoteControlApp
 
         private void ProcessRequest(HttpListenerContext context)
         {
+            var clientIP = context.Request.RemoteEndPoint?.Address?.ToString();
+            var userAgent = context.Request.UserAgent;
+            
             try
             {
                 var request = context.Request;
                 var response = context.Response;
+
+                Logger.LogRequest(request.HttpMethod, "REQUEST_RECEIVED", $"From: {clientIP}, UserAgent: {userAgent}");
 
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -72,6 +79,7 @@ namespace RemoteControlApp
                 if (request.HttpMethod == "OPTIONS")
                 {
                     response.StatusCode = 200;
+                    Logger.LogRequest("OPTIONS", "PREFLIGHT", "CORS preflight request handled");
                     response.Close();
                     return;
                 }
@@ -84,12 +92,16 @@ namespace RemoteControlApp
                         requestBody = reader.ReadToEnd();
                     }
 
+                    Logger.LogRequest("POST", "COMMAND_RECEIVED", $"Body length: {requestBody.Length} characters");
+
                     var responseText = ProcessCommand(requestBody);
                     var buffer = Encoding.UTF8.GetBytes(responseText);
 
                     response.ContentType = "application/json";
                     response.ContentLength64 = buffer.Length;
                     response.StatusCode = 200;
+
+                    Logger.LogRequest("POST", "RESPONSE_SENT", $"Response length: {buffer.Length} bytes, Status: 200");
 
                     using (var output = response.OutputStream)
                     {
@@ -99,12 +111,14 @@ namespace RemoteControlApp
                 else
                 {
                     response.StatusCode = 405;
+                    Logger.LogRequest(request.HttpMethod, "METHOD_NOT_ALLOWED", $"Unsupported method: {request.HttpMethod}");
                 }
 
                 response.Close();
             }
             catch (Exception ex)
             {
+                Logger.LogError($"Request processing failed: {ex.Message}");
                 try
                 {
                     var errorResponse = CreateJsonResponse(false, ex.Message);
@@ -116,6 +130,7 @@ namespace RemoteControlApp
                     {
                         output.Write(buffer, 0, buffer.Length);
                     }
+                    Logger.LogRequest("ERROR", "ERROR_RESPONSE", $"Status: 500, Error: {ex.Message}");
                     context.Response.Close();
                 }
                 catch { }
@@ -140,21 +155,27 @@ namespace RemoteControlApp
                         var url = ExtractJsonValue(jsonCommand, "url");
                         if (string.IsNullOrEmpty(url))
                         {
+                            Logger.LogRequest("POST", "launch_browser", "ERROR: URL is required");
                             return CreateJsonResponse(false, "URL is required");
                         }
 
+                        Logger.LogRequest("POST", "launch_browser", $"URL: {url}");
                         BrowserLauncher.LaunchUrl(url);
+                        Logger.LogAction("BROWSER_LAUNCHED", $"Successfully launched: {url}");
                         return CreateJsonResponse(true, "Browser launched successfully");
 
                     case "shell_start":
                         try
                         {
                             var workingDirectory = ExtractJsonValue(jsonCommand, "working_directory");
+                            Logger.LogRequest("POST", "shell_start", $"Working directory: {workingDirectory ?? "default"}");
                             _shellManager.StartShell(workingDirectory);
+                            Logger.LogAction("SHELL_STARTED", $"Working directory: {workingDirectory ?? "default"}");
                             return CreateJsonResponse(true, "Shell started successfully");
                         }
                         catch (Exception ex)
                         {
+                            Logger.LogError($"Failed to start shell: {ex.Message}");
                             return CreateJsonResponse(false, "Failed to start shell: " + ex.Message);
                         }
 
@@ -162,16 +183,20 @@ namespace RemoteControlApp
                         var input = ExtractJsonValue(jsonCommand, "input");
                         if (input == null)
                         {
+                            Logger.LogRequest("POST", "shell_input", "ERROR: Input is required");
                             return CreateJsonResponse(false, "Input is required");
                         }
 
                         try
                         {
+                            Logger.LogRequest("POST", "shell_input", $"Command: {input}");
                             _shellManager.SendInput(input);
+                            Logger.LogAction("SHELL_COMMAND", $"Executed: {input}");
                             return CreateJsonResponse(true, "Input sent successfully");
                         }
                         catch (Exception ex)
                         {
+                            Logger.LogError($"Failed to send shell input: {ex.Message}");
                             return CreateJsonResponse(false, "Failed to send input: " + ex.Message);
                         }
 
@@ -190,11 +215,14 @@ namespace RemoteControlApp
                     case "shell_stop":
                         try
                         {
+                            Logger.LogRequest("POST", "shell_stop", "Stopping shell");
                             _shellManager.StopShell();
+                            Logger.LogAction("SHELL_STOPPED", "Shell terminated successfully");
                             return CreateJsonResponse(true, "Shell stopped successfully");
                         }
                         catch (Exception ex)
                         {
+                            Logger.LogError($"Failed to stop shell: {ex.Message}");
                             return CreateJsonResponse(false, "Failed to stop shell: " + ex.Message);
                         }
 
@@ -231,20 +259,25 @@ namespace RemoteControlApp
                         var uploadContent = ExtractJsonValue(jsonCommand, "content");
                         if (string.IsNullOrEmpty(uploadPath))
                         {
+                            Logger.LogRequest("POST", "file_upload", "ERROR: File path is required");
                             return CreateJsonResponse(false, "File path is required");
                         }
                         if (string.IsNullOrEmpty(uploadContent))
                         {
+                            Logger.LogRequest("POST", "file_upload", "ERROR: File content is required");
                             return CreateJsonResponse(false, "File content is required");
                         }
 
                         try
                         {
+                            Logger.LogRequest("POST", "file_upload", $"Path: {uploadPath}, Content size: {uploadContent.Length} chars");
                             _fileManager.WriteFileFromBase64(uploadPath, uploadContent);
+                            Logger.LogAction("FILE_UPLOADED", $"Successfully uploaded to: {uploadPath}");
                             return CreateJsonResponse(true, "File uploaded successfully");
                         }
                         catch (Exception ex)
                         {
+                            Logger.LogError($"Failed to upload file {uploadPath}: {ex.Message}");
                             return CreateJsonResponse(false, "Failed to upload file: " + ex.Message);
                         }
 
@@ -252,17 +285,21 @@ namespace RemoteControlApp
                         var downloadPath = ExtractJsonValue(jsonCommand, "path");
                         if (string.IsNullOrEmpty(downloadPath))
                         {
+                            Logger.LogRequest("POST", "file_download", "ERROR: File path is required");
                             return CreateJsonResponse(false, "File path is required");
                         }
 
                         try
                         {
+                            Logger.LogRequest("POST", "file_download", $"Path: {downloadPath}");
                             var fileContent = _fileManager.ReadFileAsBase64(downloadPath);
                             var fileInfo = _fileManager.GetFileInfo(downloadPath);
+                            Logger.LogAction("FILE_DOWNLOADED", $"Successfully downloaded: {downloadPath}, Size: {fileInfo.Length} bytes");
                             return CreateFileDownloadResponse(fileContent, fileInfo);
                         }
                         catch (Exception ex)
                         {
+                            Logger.LogError($"Failed to download file {downloadPath}: {ex.Message}");
                             return CreateJsonResponse(false, "Failed to download file: " + ex.Message);
                         }
 
@@ -305,16 +342,20 @@ namespace RemoteControlApp
                         var deletePath = ExtractJsonValue(jsonCommand, "path");
                         if (string.IsNullOrEmpty(deletePath))
                         {
+                            Logger.LogRequest("POST", "file_delete", "ERROR: File path is required");
                             return CreateJsonResponse(false, "File path is required");
                         }
 
                         try
                         {
+                            Logger.LogRequest("POST", "file_delete", $"Path: {deletePath}");
                             _fileManager.DeleteFile(deletePath);
+                            Logger.LogAction("FILE_DELETED", $"Successfully deleted: {deletePath}");
                             return CreateJsonResponse(true, "File deleted successfully");
                         }
                         catch (Exception ex)
                         {
+                            Logger.LogError($"Failed to delete file {deletePath}: {ex.Message}");
                             return CreateJsonResponse(false, "Failed to delete file: " + ex.Message);
                         }
 

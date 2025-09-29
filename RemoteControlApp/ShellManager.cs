@@ -33,10 +33,16 @@ namespace RemoteControlApp
             lock (_processLock)
             {
                 if (IsRunning)
+                {
+                    Logger.LogWarning("Shell start requested but shell is already running");
                     return;
+                }
 
                 try
                 {
+                    var workDir = workingDirectory ?? Environment.CurrentDirectory;
+                    Logger.LogAction("SHELL_START_ATTEMPT", $"Starting shell in directory: {workDir}");
+                    
                     _shellProcess = new Process
                     {
                         StartInfo = new ProcessStartInfo
@@ -49,7 +55,7 @@ namespace RemoteControlApp
                             CreateNoWindow = true,
                             StandardOutputEncoding = Encoding.UTF8,
                             StandardErrorEncoding = Encoding.UTF8,
-                            WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory
+                            WorkingDirectory = workDir
                         }
                     };
 
@@ -60,9 +66,11 @@ namespace RemoteControlApp
                     _errorReaderTask = Task.Run(() => ReadOutputAsync(_shellProcess.StandardError, _errorBuffer, _cancellationTokenSource.Token));
 
                     IsRunning = true;
+                    Logger.LogAction("SHELL_STARTED", $"Shell process started successfully (PID: {_shellProcess.Id})");
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Logger.LogError($"Failed to start shell: {ex.Message}");
                     CleanupProcess();
                     throw;
                 }
@@ -74,15 +82,20 @@ namespace RemoteControlApp
             lock (_processLock)
             {
                 if (!IsRunning || _shellInput == null)
+                {
+                    Logger.LogError("Shell input attempted but shell is not running");
                     throw new InvalidOperationException("Shell is not running");
+                }
 
                 try
                 {
+                    Logger.LogAction("SHELL_INPUT", $"Sending command: {input}");
                     _shellInput.WriteLine(input);
                     _shellInput.Flush();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Logger.LogError($"Failed to send shell input: {ex.Message}");
                     StopShell();
                     throw;
                 }
@@ -114,8 +127,12 @@ namespace RemoteControlApp
             lock (_processLock)
             {
                 if (!IsRunning)
+                {
+                    Logger.LogWarning("Shell stop requested but shell is not running");
                     return;
+                }
 
+                Logger.LogAction("SHELL_STOP_ATTEMPT", "Stopping shell process");
                 IsRunning = false;
                 _cancellationTokenSource.Cancel();
 
@@ -126,11 +143,16 @@ namespace RemoteControlApp
                     if (_shellProcess != null && !_shellProcess.HasExited)
                     {
                         _shellProcess.Kill();
+                        Logger.LogAction("SHELL_KILLED", $"Shell process terminated (PID: {_shellProcess.Id})");
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning($"Exception during shell cleanup: {ex.Message}");
+                }
 
                 CleanupProcess();
+                Logger.LogAction("SHELL_STOPPED", "Shell stopped and resources cleaned up");
             }
         }
 

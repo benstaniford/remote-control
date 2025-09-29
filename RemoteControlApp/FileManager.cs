@@ -16,23 +16,33 @@ namespace RemoteControlApp
                 throw new ArgumentException("File path cannot be empty");
 
             if (!File.Exists(filePath))
+            {
+                Logger.LogError($"File not found: {filePath}");
                 throw new FileNotFoundException($"File not found: {filePath}");
+            }
 
             var fileInfo = new FileInfo(filePath);
             if (fileInfo.Length > MaxFileSize)
+            {
+                Logger.LogError($"File too large: {filePath} ({fileInfo.Length} bytes)");
                 throw new InvalidOperationException($"File too large. Maximum size is {MaxFileSize / (1024 * 1024)}MB");
+            }
 
             try
             {
+                Logger.LogAction("FILE_READ_ATTEMPT", $"Reading file: {filePath} ({fileInfo.Length} bytes)");
                 byte[] fileBytes = File.ReadAllBytes(filePath);
+                Logger.LogAction("FILE_READ_SUCCESS", $"Successfully read file: {filePath}");
                 return Convert.ToBase64String(fileBytes);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                Logger.LogError($"Access denied to file: {filePath} - {ex.Message}");
                 throw new UnauthorizedAccessException($"Access denied to file: {filePath}");
             }
             catch (IOException ex)
             {
+                Logger.LogError($"Error reading file {filePath}: {ex.Message}");
                 throw new IOException($"Error reading file: {ex.Message}", ex);
             }
         }
@@ -50,27 +60,36 @@ namespace RemoteControlApp
                 byte[] fileBytes = Convert.FromBase64String(base64Content);
                 
                 if (fileBytes.Length > MaxFileSize)
+                {
+                    Logger.LogError($"File too large for write: {filePath} ({fileBytes.Length} bytes)");
                     throw new InvalidOperationException($"File too large. Maximum size is {MaxFileSize / (1024 * 1024)}MB");
+                }
 
                 // Ensure directory exists
                 string directory = Path.GetDirectoryName(filePath);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
+                    Logger.LogAction("DIRECTORY_CREATED", $"Creating directory: {directory}");
                     Directory.CreateDirectory(directory);
                 }
 
+                Logger.LogAction("FILE_WRITE_ATTEMPT", $"Writing file: {filePath} ({fileBytes.Length} bytes)");
                 File.WriteAllBytes(filePath, fileBytes);
+                Logger.LogAction("FILE_WRITE_SUCCESS", $"Successfully wrote file: {filePath}");
             }
-            catch (FormatException)
+            catch (FormatException ex)
             {
+                Logger.LogError($"Invalid base64 content for file {filePath}: {ex.Message}");
                 throw new FormatException("Invalid base64 content");
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                Logger.LogError($"Access denied to file: {filePath} - {ex.Message}");
                 throw new UnauthorizedAccessException($"Access denied to file: {filePath}");
             }
             catch (IOException ex)
             {
+                Logger.LogError($"Error writing file {filePath}: {ex.Message}");
                 throw new IOException($"Error writing file: {ex.Message}", ex);
             }
         }
@@ -138,18 +157,25 @@ namespace RemoteControlApp
                 throw new ArgumentException("File path cannot be empty");
 
             if (!File.Exists(filePath))
+            {
+                Logger.LogError($"File not found for deletion: {filePath}");
                 throw new FileNotFoundException($"File not found: {filePath}");
+            }
 
             try
             {
+                Logger.LogAction("FILE_DELETE_ATTEMPT", $"Deleting file: {filePath}");
                 File.Delete(filePath);
+                Logger.LogAction("FILE_DELETE_SUCCESS", $"Successfully deleted file: {filePath}");
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                Logger.LogError($"Access denied to delete file: {filePath} - {ex.Message}");
                 throw new UnauthorizedAccessException($"Access denied to file: {filePath}");
             }
             catch (IOException ex)
             {
+                Logger.LogError($"Error deleting file {filePath}: {ex.Message}");
                 throw new IOException($"Error deleting file: {ex.Message}", ex);
             }
         }
