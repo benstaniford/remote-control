@@ -11,7 +11,8 @@
       "Bash(python tests/test_shell_client.py)",
       "Bash(python tests:*)",
       "Bash(git tag:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

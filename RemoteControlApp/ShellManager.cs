@@ -160,17 +160,66 @@ namespace RemoteControlApp
         {
             try
             {
+                char[] charBuffer = new char[1024];
+                StringBuilder lineBuffer = new StringBuilder();
+                
                 while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
                 {
-                    string line = await reader.ReadLineAsync();
-                    if (line != null)
+                    int charsRead = await reader.ReadAsync(charBuffer, 0, charBuffer.Length);
+                    if (charsRead > 0)
                     {
-                        buffer.Enqueue(line);
+                        for (int i = 0; i < charsRead; i++)
+                        {
+                            char c = charBuffer[i];
+                            if (c == '\n')
+                            {
+                                // Complete line found, remove trailing \r if present
+                                string line = lineBuffer.ToString();
+                                if (line.EndsWith("\r"))
+                                {
+                                    line = line.Substring(0, line.Length - 1);
+                                }
+                                buffer.Enqueue(line);
+                                lineBuffer.Clear();
+                            }
+                            else if (c != '\r')
+                            {
+                                // Add character to line buffer (skip \r as we handle it above)
+                                lineBuffer.Append(c);
+                            }
+                        }
+                        
+                        // If we have partial content and no more data is immediately available,
+                        // and the buffer is not empty, add it as a line to ensure output is not lost
+                        if (lineBuffer.Length > 0 && reader.Peek() == -1)
+                        {
+                            buffer.Enqueue(lineBuffer.ToString());
+                            lineBuffer.Clear();
+                        }
+                    }
+                    else
+                    {
+                        // No more data available, but check if we have a partial line
+                        if (lineBuffer.Length > 0)
+                        {
+                            buffer.Enqueue(lineBuffer.ToString());
+                            lineBuffer.Clear();
+                        }
+                        // Small delay to prevent tight loop when no data is available
+                        await Task.Delay(10, cancellationToken);
                     }
                 }
+                
+                // Handle any remaining content in the buffer when the stream ends
+                if (lineBuffer.Length > 0)
+                {
+                    buffer.Enqueue(lineBuffer.ToString());
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Log the exception for debugging
+                Logger.LogWarning($"ReadOutputAsync exception: {ex.Message}");
             }
         }
 
